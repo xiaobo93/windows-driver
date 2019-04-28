@@ -1,14 +1,14 @@
-// test_console.cpp : å®šä¹‰æ§åˆ¶å°åº”ç”¨ç¨‹åºçš„å…¥å£ç‚¹ã€‚
+// test_console.cpp : ¶¨Òå¿ØÖÆÌ¨Ó¦ÓÃ³ÌĞòµÄÈë¿Úµã¡£
 //
 #pragma once
 #include<Windows.h>
 #include<stdio.h>
 
 //
-//è°ƒç”¨minifilteræ¡†æ¶ä¸Šçš„å‡½æ•°
+//µ÷ÓÃminifilter¿ò¼ÜÉÏµÄº¯Êı
 //
 //
-//åŒ…å«ç›®å½•ï¼šC:\WinDDK\7600.16385.1\inc\ddk  é™„åŠ åº“ç›®å½•ï¼šC:\WinDDK\7600.16385.1\lib\win7\i386\
+//°üº¬Ä¿Â¼£ºC:\WinDDK\7600.16385.1\inc\ddk  ¸½¼Ó¿âÄ¿Â¼£ºC:\WinDDK\7600.16385.1\lib\win7\i386\
 //
 #include <fltUser.h>
 #pragma comment(lib, "fltLib.lib")
@@ -47,7 +47,7 @@ int NPSendMessage(PVOID InputBuffer)
 {
 
 	//
-	//åƒé©±åŠ¨ä¸­ï¼Œä¼ é€’æ•°æ®ã€‚
+	//ÏñÇı¶¯ÖĞ£¬´«µİÊı¾İ¡£
 	//
 	DWORD bytesReturned = 0;
 	DWORD hResult = 0;
@@ -69,7 +69,7 @@ int NPSendMessage(PVOID InputBuffer)
 int NPGetMessage(PVOID )
 {
 	//
-	//è¯»å–é©±åŠ¨ä¸­çš„æ•°æ®
+	//¶ÁÈ¡Çı¶¯ÖĞµÄÊı¾İ
 	//
 	return 0;
 }
@@ -91,7 +91,7 @@ int main(int argc, char* argv[])
 		system("pause");
 		return 0;
 	}
-	//è¯»å–é©±åŠ¨ä¸­çš„æ•°æ®
+	//¶ÁÈ¡Çı¶¯ÖĞµÄÊı¾İ
 	system("pause");
 	return 0;
 }
