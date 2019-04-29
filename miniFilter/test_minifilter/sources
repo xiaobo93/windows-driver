@@ -10,10 +10,12 @@ TARGETTYPE=DRIVER
 # Additional defines for the C/C++ preprocessor
 C_DEFINES=$(C_DEFINES) 
 
+
 TARGETLIBS=	$(TARGETLIBS) \
 		    $(IFSKIT_LIB_PATH)\fltMgr.lib
 
 SOURCES=testDriver.c\
 		CDO.c\
 		callBack.c\
+		DriverLog.c\
 		

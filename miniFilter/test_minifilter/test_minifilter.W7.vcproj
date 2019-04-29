@@ -634,6 +634,10 @@
 			Name="Header Files"
 			Filter="h;hpp;hxx"
 			>
+			<File
+				RelativePath=".\resource.h"
+				>
+			</File>
 		</Filter>
 		<Filter
 			Name="Resource Files"
@@ -664,10 +668,6 @@
 				RelativePath=".\sources"
 				>
 			</File>
-			<File
-				RelativePath=".\test_minifilter.vsprops"
-				>
-			</File>
 		</Filter>
 		<Filter
 			Name="CDO通信接口"
@@ -690,6 +690,18 @@
 			</File>
 			<File
 				RelativePath=".\callBack.h"
+				>
+			</File>
+		</Filter>
+		<Filter
+			Name="LogDriver"
+			>
+			<File
+				RelativePath=".\DriverLog.c"
+				>
+			</File>
+			<File
+				RelativePath=".\DriverLog.h"
 				>
 			</File>
 		</Filter>

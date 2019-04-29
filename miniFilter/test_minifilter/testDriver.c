@@ -6,9 +6,7 @@
 #include<fltKernel.h>
 #include "callBack.h"
 
-NTSTATUS DriverEntry(
-					 IN PDRIVER_OBJECT pDriverObject,
-					 IN PUNICODE_STRING pRegistryPath)
+NTSTATUS DriverEntry(IN PDRIVER_OBJECT pDriverObject,IN PUNICODE_STRING pRegistryPath)
 {
 	NTSTATUS status = STATUS_SUCCESS;
 	PSECURITY_DESCRIPTOR sd;
@@ -26,7 +24,6 @@ NTSTATUS DriverEntry(
 			FltUnregisterFilter(g_FilterHandle);
 		}
 	}
-
 	//创建安全描述符
 	status  = FltBuildDefaultSecurityDescriptor( &sd, FLT_PORT_ALL_ACCESS );
 	if (!NT_SUCCESS( status )) {
