@@ -1,3 +1,16 @@
+/*
+接口调用规范： 
+//初始化路径及文件名
+Log_Init(L"c:",L"hello");
+//写入日志
+KernelWriteLog(L"EmptyDriver",L"DriverEntry");
+//退出log处理函数
+SysHelp_UnInit();
+//////////////////////////////////////////////////////////////////////////
+日志文件名称为： c:\\日期\\hello_日期
+日志内容：[时间][EmptyDriver]DriverEntry
+*/
+
 #pragma  once;
 /*
 功能:
