@@ -41,3 +41,9 @@ NTSTATUS SysHelp_UnInit();
     errorFunction : %s  errorcode : 0x%x
 */
 NTSTATUS KernelWriteLog(PWCHAR pModuleName, PWCHAR pLogContent);
+
+#define  PWLOG(fmt,...)  { \
+    WCHAR Log[100] = {0};\
+    RtlStringCchPrintfW(Log, 100,fmt, ##__VA_ARGS__ );\
+    KernelWriteLog(__FUNCTIONW__, Log);\
+}
