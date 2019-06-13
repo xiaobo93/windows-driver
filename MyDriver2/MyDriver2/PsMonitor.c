@@ -1,35 +1,41 @@
 #pragma once
-#include<ntddk.h>
+#include"PsMonitor.h"
 
 PVOID g_MonitorHandle = NULL;
 
-OB_PREOP_CALLBACK_STATUS
-ProcessObjectPreCallback(
+OB_PREOP_CALLBACK_STATUS ProcessObjectPreCallback(
 	__in PVOID  RegistrationContext,
-	__in POB_PRE_OPERATION_INFORMATION  OperationInformation)
+	__in POB_PRE_OPERATION_INFORMATION  OperationInformation
+)
 {//进程监控函数
-	return 0;
+
+	HANDLE targetID ;
+	HANDLE sourceID;
+	ACCESS_MASK desiredAccess;
+	desiredAccess = OperationInformation->Parameters->CreateHandleInformation.DesiredAccess;
+	sourceID = (HANDLE)PsGetCurrentProcessId();
+	targetID = (HANDLE)PsGetProcessId((PEPROCESS)OperationInformation->Object);
+	KdPrint(("%d --- %d\n", targetID, sourceID));
+
+	return OB_PREOP_SUCCESS;
 }
 OB_PREOP_CALLBACK_STATUS
 ThreadObjectPreCallback(
 	__in PVOID  RegistrationContext,
 	__in POB_PRE_OPERATION_INFORMATION  OperationInformation)
 {//线程监控函数
-	return 0;
+	return OB_PREOP_SUCCESS;
 }
-NTSTATUS StartMonitor()
-{//开始进程监控
-	if (KeGetCurrentIrql() > APC_LEVEL)
-	{
-
-	}
+NTSTATUS StartX64Monitor()
+{
 	NTSTATUS status = STATUS_SUCCESS;
 	OB_OPERATION_REGISTRATION ob_op[2] = { 0 };
 	OB_CALLBACK_REGISTRATION ob_callback = { 0 };
 	UNICODE_STRING us;
-
-	KdPrint(("开始进程监控\n"));
-
+	if (KeGetCurrentIrql() > APC_LEVEL)
+	{
+		KdPrint(("StartX64Monitor KeGetCurrentIrql() > APC_LEVEL "));
+	}
 	ob_op[0].ObjectType = PsProcessType;
 	ob_op[0].Operations = OB_OPERATION_HANDLE_CREATE;
 	ob_op[0].PreOperation = ProcessObjectPreCallback;
@@ -48,11 +54,39 @@ NTSTATUS StartMonitor()
 	ob_callback.RegistrationContext = NULL;
 
 	status = ObRegisterCallbacks(&ob_callback, &(g_MonitorHandle));
+	if (!NT_SUCCESS(status))
+	{
+		KdPrint(("ObRegisterCallbacks = 0x%x", status));
+	}
+	return status;
+}
+NTSTATUS StopX64Monitor()
+{
+	NTSTATUS status = STATUS_SUCCESS;
+	KdPrint(("停止进程监控\n"));
+	if (NULL != g_MonitorHandle)
+	{
+		ObUnRegisterCallbacks(g_MonitorHandle);
+	}
+	return status;
+}
+NTSTATUS StartMonitor()
+{
+	NTSTATUS status = STATUS_SUCCESS;
+#ifdef _WIN64
+	status = StartX64Monitor();
+#else
+	KdPrint(("x32位系统进程保护安装"));
+#endif // _WIN64
 	return status;
 }
 NTSTATUS StopMonitor()
 {//停止进程监控
-	KdPrint(("停止进程监控\n"));
-	ObUnRegisterCallbacks(g_MonitorHandle);
+	NTSTATUS status = STATUS_SUCCESS;
+#ifdef  _WIN64
+	status = StopX64Monitor();
+#else
+	KdPrint(("x32位系统进程保护卸载"));
+#endif //  _WIN64
 	return STATUS_SUCCESS;
 }
