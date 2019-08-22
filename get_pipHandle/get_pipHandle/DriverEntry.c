@@ -47,6 +47,14 @@ NTSTATUS CallUSBD(
 	IN PDEVICE_OBJECT DeviceObject,
 	IN PURB Urb
 )
+/*--
+
+函数描述:
+	拼接IRP，将IRP发送到指定物理设备中
+
+DeviceObject -  目标设备对象
+Urb - URB信息
+++*/
 {
 	PIRP	irp = NULL;
 	KEVENT	 event;
@@ -88,6 +96,11 @@ SyGetDriverObject(
 	IN PWCHAR DriverName,
 	OUT PDRIVER_OBJECT *OutDrvObj
 )
+/*--
+
+函数描述:
+	通过DriverName 获取设备对象，并通过OutDrvObj 输出。
+++*/
 {
 	NTSTATUS ntStatus = STATUS_SUCCESS;
 	UNICODE_STRING szDriverName = { 0 };
@@ -148,6 +161,11 @@ SyGetDeviceObjectInDriver(
 	ULONG_PTR * DeviceObjectList,
 	PULONG DeviceObjectCount
 )
+/*--
+
+函数描述:
+	遍历指定DriverObject驱动对象，所有的设备对象。
+++*/
 {
 	NTSTATUS ntStatus;
 	PULONG_PTR pDeviceObjectList;
@@ -166,7 +184,7 @@ SyGetDeviceObjectInDriver(
 		return STATUS_INSUFFICIENT_RESOURCES;
 
 	RtlZeroMemory(pDeviceObjectList, ulDeviceObjectListSize);
-
+	//获取设备对象
 	ntStatus = IoEnumerateDeviceObjectList(DriverObject, (PDEVICE_OBJECT *)pDeviceObjectList, ulDeviceObjectListSize, &ulActualNumberDeviceObject);
 	if (!NT_SUCCESS(ntStatus)) {
 
@@ -217,11 +235,13 @@ HardwareID - 物理设备对象
 		{
 			WCHAR usbId[256] = { 0 };
 			ULONG retlen = sizeof(usbId);
+			//获取设备对象的物理地址
 			status = IoGetDeviceProperty(devObjList[i], DevicePropertyHardwareID,
 				retlen, (PVOID)usbId, &retlen);
 			if (NT_SUCCESS(status))
 			{
 				//DbgPrint("[%s] usbid %ws.\n", __FUNCTION__,usbId);
+				//校验设备ID
 				if (!bFound && _wcsicmp(usbId, HardwareID) == 0)
 				{
 					bFound = TRUE;
@@ -267,11 +287,14 @@ NTSTATUS ClosePipHanle(PDEVICE_OBJECT DeviceObject, USBD_PIPE_HANDLE pipHandle)
 }
 NTSTATUS GetConfigureDevice(
 	IN PDEVICE_OBJECT DeviceObject,
-	_Out_ PUSB_CONFIGURATION_DESCRIPTOR *ConfigurationDescriptor)
+	OUT PUSB_CONFIGURATION_DESCRIPTOR *ConfigurationDescriptor)
 /*++
 	DeviceObejct : 物理设备对象或着附加设备对象
 函数作用：
 	读取对应物理设备配置信息。
+
+DeviceObject - 物理设备对象
+返回值 ConfigurationDescriptor - 物理设备配置信息
 --*/
 {
 	NTSTATUS ntStatus = STATUS_SUCCESS;
