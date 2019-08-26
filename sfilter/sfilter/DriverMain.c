@@ -64,6 +64,14 @@ NTSTATUS SfPassThrough(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
 SfPassThrough_exit:
 	return ntStatus;
 }
+VOID
+SfFsNotification(
+	IN PDEVICE_OBJECT DeviceObject,
+	IN BOOLEAN FsActive
+)
+{//监测新创建的设备信息。
+
+}
 NTSTATUS
 DriverEntry(
 	IN PDRIVER_OBJECT DriverObject,
@@ -107,7 +115,7 @@ DriverEntry(
 	{
 		DriverObject->MajorFunction[i] = SfPassThrough;
 	}
-	DriverObject->MajorFunction[IRP_MJ_CREATE];
+	DriverObject->MajorFunction[IRP_MJ_CREATE] ;
 	DriverObject->MajorFunction[IRP_MJ_CREATE_NAMED_PIPE];
 	DriverObject->MajorFunction[IRP_MJ_CREATE_MAILSLOT];
 	DriverObject->MajorFunction[IRP_MJ_FILE_SYSTEM_CONTROL];
@@ -172,6 +180,7 @@ DriverEntry(
 	}
 
 goto DriverEntry_End;
+
 DriverEntry_Exit:
 	if (gSFilterControlDeivceObject != NULL)
 	{
