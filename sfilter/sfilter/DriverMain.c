@@ -72,6 +72,29 @@ SfFsNotification(
 {//监测新创建的设备信息。
 
 }
+NTSTATUS sfCreate(IN PDEVICE_OBJECT DeviceObject,
+	IN PIRP Irp)
+{
+	NTSTATUS ntStatus = STATUS_SUCCESS;
+	return ntStatus;
+}
+
+NTSTATUS DispatchFunction(IN PDEVICE_OBJECT DeviceObject,
+	IN PIRP Irp)
+{
+	NTSTATUS ntStatus = STATUS_SUCCESS;
+	if (DeviceObject == gSFilterControlDeivceObject)
+	{//控制设备操作
+		Irp->IoStatus.Status = STATUS_SUCCESS;
+		Irp->IoStatus.Information = 0;
+		IoCompleteRequest(Irp, IO_NO_INCREMENT);
+		return STATUS_SUCCESS;
+	}
+	else {
+
+	}
+	return ntStatus;
+}
 NTSTATUS
 DriverEntry(
 	IN PDRIVER_OBJECT DriverObject,
