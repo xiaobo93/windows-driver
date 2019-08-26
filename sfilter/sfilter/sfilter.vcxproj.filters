@@ -22,5 +22,19 @@
     <ClCompile Include="DriverMain.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="FastIo.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FileCallBack.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="FastIo.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FileCallBack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>
