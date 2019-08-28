@@ -12,9 +12,36 @@ VOID DriverUnload(PDRIVER_OBJECT pDriverObject)
 {
 	
 }
-VOID
-SfFsNotification(IN PDEVICE_OBJECT DeviceObject,IN BOOLEAN FsActive)
+NTSTATUS SfGetObjectName(IN PVOID Object, OUT PWCHAR * name)
+/*--
+
+函数描述:
+	返回给定对象的名称，如果对象没有，返回一个空字符串
+++*/
+{
+	NTSTATUS ntStatus = STATUS_SUCCESS;
+	UNICODE_STRING buf;
+	ULONG retLength;
+	ntStatus = ObQueryNameString(Object,NULL,NULL,&retLength);
+	if (ntStatus == STATUS_INFO_LENGTH_MISMATCH)
+	{
+		*name = ExAllocatePool(NonPagedPool, retLength);
+		if (*name == NULL)
+		{
+			goto SfGetObjectName_Exit;
+		}
+		RtlInitUnicodeString(&buf, *name);
+		ntStatus = ObQueryNameString(Object, NULL, NULL, &retLength);
+	}
+	else {
+		*name = NULL;
+	}
+SfGetObjectName_Exit:
+	return ntStatus;
+}
+VOID SfFsNotification(IN PDEVICE_OBJECT DeviceObject,IN BOOLEAN FsActive)
 {//监测新创建的设备信息。
+	PWCHAR name = NULL;
 
 }
 NTSTATUS DeviceDispatch(IN PDEVICE_OBJECT DeviceObject,IN PIRP Irp)
@@ -38,10 +65,10 @@ DriverEntry(
 {
 	NTSTATUS status = STATUS_SUCCESS;
 	UNICODE_STRING nameString;
-	int i = 0;
 	gSFilterDriverObject = DriverObject;
 	RtlInitUnicodeString(&nameString, L"\\FileSystem\\Filters\\SFilterCDO");
 	DriverObject->DriverUnload = DriverUnload;
+	PFAST_IO_DISPATCH fastIoDispatch = NULL;
 	status = IoCreateDevice(DriverObject,
 		0,
 		&nameString,
@@ -69,17 +96,21 @@ DriverEntry(
 	{
 		KdPrint(("[%s]控制设备对象(%ws)，生成失败\n",nameString.Buffer));
 	}
-	for (i = 0; i < IRP_MJ_MAXIMUM_FUNCTION; i++)
 	{
-		DriverObject->MajorFunction[i] = DeviceDispatch;
+		int i = 0;
+		for (i = 0; i < IRP_MJ_MAXIMUM_FUNCTION; i++)
+		{
+			DriverObject->MajorFunction[i] = DeviceDispatch;
+		}
 	}
+
 	//处理快速分发函数
 	do {
-		PFAST_IO_DISPATCH fastIoDispatch = NULL;
 		fastIoDispatch = ExAllocatePool(NonPagedPool, sizeof(FAST_IO_DISPATCH));
 		if (!fastIoDispatch)
 		{
 			status = STATUS_INSUFFICIENT_RESOURCES;
+			goto DriverEntry_Exit;
 		}
 		RtlZeroMemory(fastIoDispatch, sizeof(FAST_IO_DISPATCH));
 		fastIoDispatch->SizeOfFastIoDispatch = sizeof(FAST_IO_DISPATCH);
@@ -130,10 +161,21 @@ DriverEntry(
 			goto DriverEntry_Exit;
 		}
 	}
-
+	//注册文件系统，变动函数
+	status = IoRegisterFsRegistrationChange(DriverObject, SfFsNotification);
+	if (!NT_SUCCESS(status))
+	{
+		goto DriverEntry_Exit;
+	}
+	ClearFlag(gSFilterControlDeivceObject->Flags, DO_DEVICE_INITIALIZING);
 goto DriverEntry_End;
 
 DriverEntry_Exit:
+	if (fastIoDispatch != NULL)
+	{
+		DriverObject->FastIoDispatch = NULL;
+		ExFreePool(fastIoDispatch);
+	}
 	if (gSFilterControlDeivceObject != NULL)
 	{
 		IoDeleteDevice(gSFilterControlDeivceObject);
