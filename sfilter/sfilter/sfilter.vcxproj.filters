@@ -25,7 +25,13 @@
     <ClCompile Include="FastIo.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="FileCallBack.c">
+    <ClCompile Include="CdoDispatch.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FsDispatch.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="FsCallBack.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -33,7 +39,16 @@
     <ClInclude Include="FastIo.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="FileCallBack.h">
+    <ClInclude Include="CdoDispatch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FsDispatch.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FsHeader.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="FsCallBack.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>

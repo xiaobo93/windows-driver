@@ -1,97 +1,32 @@
 #pragma once
-#include<ntifs.h>
-#include<ntddk.h>
-#include<ntstrsafe.h>
+#include "FsHeader.h"
 #include "FastIo.h"
-#include "FileCallBack.h"
+#include "FsCallBack.h"
+#include "cdoDispatch.h"
+#include"FsDispatch.h"
 
 PDEVICE_OBJECT gSFilterControlDeivceObject = NULL;
 PDRIVER_OBJECT gSFilterDriverObject = NULL;
-
-typedef struct _SFILTER_DEVICE_EXTENSION {
-
-	ULONG TypeFlag;
-	//
-	//  Pointer to the file system device object we are attached to
-	//
-	PDEVICE_OBJECT AttachedToDeviceObject; //下一个设备对象
-	//
-	//  Pointer to the real (disk) device object that is associated with
-	//  the file system device object we are attached to
-	//
-	PDEVICE_OBJECT StorageStackDeviceObject;//真实的设备对象
-
-	//
-	//  Name for this device.  If attached to a Volume Device Object it is the
-	//  name of the physical disk drive.  If attached to a Control Device
-	//  Object it is the name of the Control Device Object.
-	//
-
-	UNICODE_STRING DeviceName;
-
-	//
-	//  Buffer used to hold the above unicode strings
-	//
-
-	WCHAR DeviceNameBuffer[64];
-
-	// 
-	// The extension used by other user.
-	//
-
-	UCHAR UserExtension[1];
-
-} SFILTER_DEVICE_EXTENSION, *PSFILTER_DEVICE_EXTENSION;
 
 VOID DriverUnload(PDRIVER_OBJECT pDriverObject)
 {
 	
 }
-NTSTATUS SfPassThrough(IN PDEVICE_OBJECT DeviceObject, IN PIRP Irp)
-{//通用派遣函数
-	NTSTATUS ntStatus = STATUS_SUCCESS;
-	PSFILTER_DEVICE_EXTENSION devExt = (PSFILTER_DEVICE_EXTENSION)DeviceObject->DeviceExtension;
-	if (DeviceObject == NULL ||   //无效操作
-		DeviceObject == gSFilterControlDeivceObject //控制设备操作
-		|| DeviceObject->DriverObject == gSFilterDriverObject
-		)
-	{
-		ntStatus = STATUS_UNSUCCESSFUL;
-		goto SfPassThrough_exit;
-	}
-	IoSkipCurrentIrpStackLocation(Irp);
-	ntStatus = IoCallDriver(devExt->AttachedToDeviceObject, Irp);
-SfPassThrough_exit:
-	return ntStatus;
-}
 VOID
-SfFsNotification(
-	IN PDEVICE_OBJECT DeviceObject,
-	IN BOOLEAN FsActive
-)
+SfFsNotification(IN PDEVICE_OBJECT DeviceObject,IN BOOLEAN FsActive)
 {//监测新创建的设备信息。
 
 }
-NTSTATUS sfCreate(IN PDEVICE_OBJECT DeviceObject,
-	IN PIRP Irp)
-{
-	NTSTATUS ntStatus = STATUS_SUCCESS;
-	return ntStatus;
-}
-
-NTSTATUS DispatchFunction(IN PDEVICE_OBJECT DeviceObject,
-	IN PIRP Irp)
+NTSTATUS DeviceDispatch(IN PDEVICE_OBJECT DeviceObject,IN PIRP Irp)
 {
 	NTSTATUS ntStatus = STATUS_SUCCESS;
 	if (DeviceObject == gSFilterControlDeivceObject)
 	{//控制设备操作
-		Irp->IoStatus.Status = STATUS_SUCCESS;
-		Irp->IoStatus.Information = 0;
-		IoCompleteRequest(Irp, IO_NO_INCREMENT);
-		return STATUS_SUCCESS;
+		ntStatus = CdoDeviceDispatch(DeviceObject, Irp);
 	}
 	else {
-
+		//常规设备派遣函数
+		ntStatus = FsDeviceDispatch(DeviceObject, Irp);
 	}
 	return ntStatus;
 }
@@ -136,14 +71,8 @@ DriverEntry(
 	}
 	for (i = 0; i < IRP_MJ_MAXIMUM_FUNCTION; i++)
 	{
-		DriverObject->MajorFunction[i] = SfPassThrough;
+		DriverObject->MajorFunction[i] = DeviceDispatch;
 	}
-	DriverObject->MajorFunction[IRP_MJ_CREATE] ;
-	DriverObject->MajorFunction[IRP_MJ_CREATE_NAMED_PIPE];
-	DriverObject->MajorFunction[IRP_MJ_CREATE_MAILSLOT];
-	DriverObject->MajorFunction[IRP_MJ_FILE_SYSTEM_CONTROL];
-	DriverObject->MajorFunction[IRP_MJ_CLEANUP];
-	DriverObject->MajorFunction[IRP_MJ_CLOSE];
 	//处理快速分发函数
 	do {
 		PFAST_IO_DISPATCH fastIoDispatch = NULL;

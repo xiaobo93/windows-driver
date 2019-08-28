@@ -149,13 +149,18 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CdoDispatch.c" />
     <ClCompile Include="DriverMain.c" />
     <ClCompile Include="FastIo.c" />
-    <ClCompile Include="FileCallBack.c" />
+    <ClCompile Include="FsCallBack.c" />
+    <ClCompile Include="FsDispatch.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CdoDispatch.h" />
     <ClInclude Include="FastIo.h" />
-    <ClInclude Include="FileCallBack.h" />
+    <ClInclude Include="FsCallBack.h" />
+    <ClInclude Include="FsDispatch.h" />
+    <ClInclude Include="FsHeader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
