@@ -12,26 +12,28 @@ VOID DriverUnload(PDRIVER_OBJECT pDriverObject)
 {
 	
 }
-NTSTATUS SfGetObjectName(IN PVOID Object, OUT PWCHAR * name)
+NTSTATUS SfGetObjectName(IN PVOID Object, OUT POBJECT_NAME_INFORMATION * name)
 /*--
 
 函数描述:
 	返回给定对象的名称，如果对象没有，返回一个空字符串
 ++*/
 {
+	_asm int 3;
 	NTSTATUS ntStatus = STATUS_SUCCESS;
-	UNICODE_STRING buf;
 	ULONG retLength;
-	ntStatus = ObQueryNameString(Object,NULL,NULL,&retLength);
+	POBJECT_NAME_INFORMATION tmp;
+	ntStatus = ObQueryNameString(Object,NULL,0,&retLength);
 	if (ntStatus == STATUS_INFO_LENGTH_MISMATCH)
 	{
-		*name = ExAllocatePool(NonPagedPool, retLength);
-		if (*name == NULL)
+		tmp = ExAllocatePool(NonPagedPool, retLength);
+		if (tmp == NULL)
 		{
 			goto SfGetObjectName_Exit;
 		}
-		RtlInitUnicodeString(&buf, *name);
-		ntStatus = ObQueryNameString(Object, NULL, NULL, &retLength);
+		RtlZeroMemory(tmp, retLength);
+		ntStatus = ObQueryNameString(Object, (POBJECT_NAME_INFORMATION)tmp, retLength, &retLength);
+		*name = tmp;
 	}
 	else {
 		*name = NULL;
@@ -41,8 +43,15 @@ SfGetObjectName_Exit:
 }
 VOID SfFsNotification(IN PDEVICE_OBJECT DeviceObject,IN BOOLEAN FsActive)
 {//监测新创建的设备信息。
-	PWCHAR name = NULL;
-
+	NTSTATUS ntStatus;
+	POBJECT_NAME_INFORMATION name = NULL;
+	ntStatus = SfGetObjectName(DeviceObject, &name);
+	KdPrint(("磁盘名称为 %ws\n", name->Name.Buffer));
+	if (name != NULL)
+	{
+		ExFreePool(name);
+		name = NULL;
+	}
 }
 NTSTATUS DeviceDispatch(IN PDEVICE_OBJECT DeviceObject,IN PIRP Irp)
 {
