@@ -82,45 +82,83 @@ NTSTATUS SfEnumerateFileSystemVolumes(IN PDEVICE_OBJECT FSDeviceObject, IN PUNIC
 	ULONG i;
 	BOOLEAN isShadowCopyVolume;
 	PDEVICE_OBJECT *devList;
-
-	if (gSfDynamicFunctions.EnumerateDeviceObjectList != NULL)
+	if (gSfDynamicFunctions.EnumerateDeviceObjectList == NULL ||
+		gSfDynamicFunctions.GetDeviceAttachmentBaseRef ||
+		gSfDynamicFunctions.GetDiskDeviceObject)
 	{
+		return STATUS_UNSUCCESSFUL;
+	}
+	ntStatus = (gSfDynamicFunctions.EnumerateDeviceObjectList)(
+		FSDeviceObject->DriverObject,
+		NULL,
+		0,
+		&numDevices
+		);
+	if (ntStatus == STATUS_BUFFER_TOO_SMALL)
+	{
+		numDevices += 8;
+		devList = ExAllocatePoolWithTag(NonPagedPool, (numDevices * sizeof(PDEVICE_OBJECT)),
+			'xb');
+		if (NULL == devList)
+		{
+			return STATUS_INSUFFICIENT_RESOURCES;
+		}
 		ntStatus = (gSfDynamicFunctions.EnumerateDeviceObjectList)(
 			FSDeviceObject->DriverObject,
-			NULL,
-			0,
+			devList,
+			(numDevices * sizeof(PDEVICE_OBJECT)),
 			&numDevices
 			);
-		if (ntStatus == STATUS_BUFFER_TOO_SMALL)
+		if (!NT_SUCCESS(ntStatus))
 		{
-			numDevices += 8;
-			devList = ExAllocatePoolWithTag(NonPagedPool, (numDevices * sizeof(PDEVICE_OBJECT)),
-				'xb');
-			if (NULL == devList)
-			{
-				return STATUS_INSUFFICIENT_RESOURCES;
-			}
-			ntStatus = (gSfDynamicFunctions.EnumerateDeviceObjectList)(
-				FSDeviceObject->DriverObject,
-				devList,
-				(numDevices * sizeof(PDEVICE_OBJECT)),
-				&numDevices
-				);
-			if (!NT_SUCCESS(ntStatus))
-			{
-				ExFreePool(devList);
-				return ntStatus;
-			}
-			for (i = 0; i < numDevices; i++)
-			{
-				storageStackDeviceObject = NULL;
+			ExFreePool(devList);
+			return ntStatus;
+		}
+		for (i = 0; i < numDevices; i++)
+		{
+			storageStackDeviceObject = NULL;
+			try {
 				if (devList[i] == FSDeviceObject ||
 					(devList[i]->DeviceType != FSDeviceObject->DeviceType) ||
 					SfIsAttachedToDevice(devList[i]->DeviceType))
 				{//设备已经被绑定，不会再进行绑定
-					ObReferenceObject(devList[i]);
-					continue;
+					leave;
 				}
+				//通过检查，设备链最底层的设备对象是否包含设备名。
+				{
+					PDEVICE_OBJECT pLowerDevice = NULL;
+					pLowerDevice = (gSfDynamicFunctions.GetDeviceAttachmentBaseRef)(devList[i]);
+					//获取设备名称
+					ObReferenceObject(pLowerDevice);
+				}
+				ntStatus = (gSfDynamicFunctions.GetDiskDeviceObject)(devList[i],
+					&storageStackDeviceObject);
+				if (!NT_SUCCESS(ntStatus))
+				{
+					leave;
+				}
+				ntStatus = IoCreateDevice(gSFilterDriverObject,
+					sizeof(SFILTER_DEVICE_EXTENSION),
+					NULL,
+					devList[i]->DeviceType,
+					0,
+					FALSE,
+					&newDeviceObject);
+				if (!NT_SUCCESS(ntStatus))
+				{
+					leave;
+				}
+				newDevExt = newDeviceObject->DeviceExtension;
+				newDevExt->TypeFlag = 'ss';
+				newDevExt->StorageStackDeviceObject = storageStackDeviceObject;
+
+			}
+			finally{
+				if (storageStackDeviceObject != NULL)
+				{
+					ObReferenceObject(storageStackDeviceObject);
+				}
+			ObReferenceObject(devList[i]);
 			}
 		}
 	}
