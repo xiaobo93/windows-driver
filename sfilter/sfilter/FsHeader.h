@@ -3,6 +3,7 @@
 #include<ntddk.h>
 #include<ntstrsafe.h>
 
+#define MAX_DEVNAME_LENGTH 260
 typedef struct _SFILTER_DEVICE_EXTENSION {
 
 	ULONG TypeFlag;
@@ -14,7 +15,7 @@ typedef struct _SFILTER_DEVICE_EXTENSION {
 	//  Pointer to the real (disk) device object that is associated with
 	//  the file system device object we are attached to
 	//
-	PDEVICE_OBJECT StorageStackDeviceObject;//真实的设备对象
+	PDEVICE_OBJECT StorageStackDeviceObject;//磁盘设备对象
 
 	//
 	//  Name for this device.  If attached to a Volume Device Object it is the
@@ -22,7 +23,7 @@ typedef struct _SFILTER_DEVICE_EXTENSION {
 	//  Object it is the name of the Control Device Object.
 	//
 
-	WCHAR DeviceNameBuffer[64];
+	WCHAR DeviceNameBuffer[MAX_DEVNAME_LENGTH]; //存放文件系统设备名称或者磁盘设备对象名称
 
 	// 
 	// The extension used by other user.
