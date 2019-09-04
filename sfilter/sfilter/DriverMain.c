@@ -222,18 +222,25 @@ NTSTATUS sfAttachToFileSystemDevices(
 	PSFILTER_DEVICE_EXTENSION devExt = NULL;
 	PDEVICE_OBJECT newDeviceObject = NULL;
 	NTSTATUS status = STATUS_UNSUCCESSFUL;
+	WCHAR tmp2[MAX_DEVNAME_LENGTH] = { 0 };
+	UNICODE_STRING DriverName;
+	RtlInitUnicodeString(&DriverName, tmp2, MAX_DEVNAME_LENGTH);
+	status = SfGetObjectName(DeviceObject->DriverObject, &DriverName);
 	if (DeviceObject->DeviceType != FILE_DEVICE_DISK_FILE_SYSTEM &&   //0x8
 		DeviceObject->DeviceType != FILE_DEVICE_CD_ROM_FILE_SYSTEM &&             //0x3
 		DeviceObject->DeviceType != FILE_DEVICE_NETWORK_FILE_SYSTEM)   //0x14
 	{
 		KdPrint(("%s文件系统，不符合绑定规则,驱动名称为：%ws\n",__FUNCTION__,
 			DeviceObject->DriverObject->DriverName.Buffer));
+		status = STATUS_SUCCESS;
 		goto sfAttachToFileSystemDevices_exit;
 	}
-	if (_wcsicmp(L"\\FileSystem\\Fs_Rec", DeviceObject->DriverObject->DriverName.Buffer) == 0)
+
+	if (_wcsicmp(L"\\FileSystem\\Fs_Rec", DriverName.Buffer) == 0)
 	{//\\FileSystem\\Fs_Rec 识别器。不进行绑定
-		KdPrint(("%s \"%s\"该设备为 文件系统识别器，不进行绑定",
+		KdPrint(("%s (%s)该设备为 文件系统识别器，不进行绑定",
 			__FUNCTION__, DeviceObject->DriverObject->DriverName.Buffer));
+		status = STATUS_SUCCESS;
 		goto sfAttachToFileSystemDevices_exit;
 	}
 	status = IoCreateDevice(gSFilterDriverObject,
@@ -298,6 +305,7 @@ VOID SfFsNotification(IN PDEVICE_OBJECT DeviceObject,IN BOOLEAN FsActive)
 		DeviceName.Buffer, DeviceObject->DeviceType));
 	if (FsActive)
 	{   //绑定文件系统
+		_asm int 3;
 		ntStatus = sfAttachToFileSystemDevices(DeviceObject,&DeviceName);
 		if (NT_SUCCESS(ntStatus))
 		{
