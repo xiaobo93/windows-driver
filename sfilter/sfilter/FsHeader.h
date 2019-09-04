@@ -22,6 +22,7 @@ typedef struct _SFILTER_DEVICE_EXTENSION {
 	//  name of the physical disk drive.  If attached to a Control Device
 	//  Object it is the name of the Control Device Object.
 	//
+	UNICODE_STRING DevieName;
 
 	WCHAR DeviceNameBuffer[MAX_DEVNAME_LENGTH]; //存放文件系统设备名称或者磁盘设备对象名称
 

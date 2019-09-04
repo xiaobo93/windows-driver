@@ -7,14 +7,14 @@
 
 PDEVICE_OBJECT gSFilterControlDeivceObject = NULL;
 PDRIVER_OBJECT gSFilterDriverObject = NULL;
-SF_DYNAMIC_FUNCTION_POINTERS gSfDynamicFunctions = { 0 }; //存放导出函数的位置
+SF_DYNAMIC_FUNCTION_POINTERS gSfDynamicFunctions; //存放导出函数的位置
 FAST_MUTEX gSfilterAttachLock;
 
 VOID DriverUnload(PDRIVER_OBJECT pDriverObject)
 {
 	
 }
-NTSTATUS SfGetObjectName(IN PVOID Object, OUT PWCHAR DeviceName)
+NTSTATUS SfGetObjectName(IN PVOID Object, PUNICODE_STRING name)
 /*--
 函数描述:
 	返回给定对象的名称，如果对象没有，返回一个空字符串
@@ -23,18 +23,15 @@ NTSTATUS SfGetObjectName(IN PVOID Object, OUT PWCHAR DeviceName)
 	NTSTATUS ntStatus = STATUS_SUCCESS;
 	ULONG retLength;
 	POBJECT_NAME_INFORMATION tmp ;
-	WCHAR Name[MAX_DEVNAME_LENGTH];
-	ULONG gxblen = sizeof(Name);
-	RtlZeroMemory(Name, gxblen);
+	WCHAR Name[MAX_DEVNAME_LENGTH] = { 0 };
+
 	tmp = (POBJECT_NAME_INFORMATION)Name;
-	ntStatus = ObQueryNameString(Object,tmp, gxblen,&retLength);
+	ntStatus = ObQueryNameString(Object,tmp, sizeof(Name),&retLength);
+
+	name->Length = 0;
 	if (NT_SUCCESS(ntStatus))
 	{
-		RtlStringCchCopyW(DeviceName, sizeof(DeviceName) / sizeof(WCHAR), tmp->Name.Buffer);
-		//wcscpy_s(DeviceName, sizeof(DeviceName)/size(DeviceName), tmp->Name.Buffer);
-	}
-	else {
-		RtlZeroMemory(DeviceName, sizeof(DeviceName));
+		RtlCopyUnicodeString(name,&tmp->Name);
 	}
 	return ntStatus;
 }
@@ -88,9 +85,9 @@ NTSTATUS SfEnumerateFileSystemVolumes(IN PDEVICE_OBJECT FSDeviceObject)
 	BOOLEAN isShadowCopyVolume;
 	PDEVICE_OBJECT *devList;
 	if (gSfDynamicFunctions.EnumerateDeviceObjectList == NULL ||
-		gSfDynamicFunctions.GetDeviceAttachmentBaseRef ||
-		gSfDynamicFunctions.GetDiskDeviceObject)
-	{
+		gSfDynamicFunctions.GetDeviceAttachmentBaseRef == NULL ||
+		gSfDynamicFunctions.GetDiskDeviceObject == NULL)
+	{//校验导出函数
 		return STATUS_UNSUCCESSFUL;
 	}
 	ntStatus = (gSfDynamicFunctions.EnumerateDeviceObjectList)(
@@ -108,6 +105,7 @@ NTSTATUS SfEnumerateFileSystemVolumes(IN PDEVICE_OBJECT FSDeviceObject)
 		{
 			return STATUS_INSUFFICIENT_RESOURCES;
 		}
+		//获取驱动上的所有设备对象
 		ntStatus = (gSfDynamicFunctions.EnumerateDeviceObjectList)(
 			FSDeviceObject->DriverObject,
 			devList,
@@ -119,34 +117,42 @@ NTSTATUS SfEnumerateFileSystemVolumes(IN PDEVICE_OBJECT FSDeviceObject)
 			ExFreePool(devList);
 			return ntStatus;
 		}
+		_asm int 3;
 		for (i = 0; i < numDevices; i++)
-		{
+		{//循环绑定设备对象
+			WCHAR tmp[MAX_DEVNAME_LENGTH] = { 0 };
+			UNICODE_STRING DeviceName;
+			RtlInitEmptyUnicodeString(&DeviceName, tmp, sizeof(tmp));
+			SfGetObjectName(devList[i], &DeviceName);
 			storageStackDeviceObject = NULL;
-			try {
+			while(TRUE)
+			{
 				if (devList[i] == FSDeviceObject ||
 					(devList[i]->DeviceType != FSDeviceObject->DeviceType) ||
 					SfIsAttachedToDevice(devList[i]))
 				{//设备已经被绑定，不会再进行绑定
-					leave;
+					break;
 				}
 				//通过检查，设备链最底层的设备对象是否包含设备名。
 				{
 					PDEVICE_OBJECT pLowerDevice = NULL;
-					WCHAR pLowerDeviceName[MAX_DEVNAME_LENGTH] = { 0 };
+					WCHAR tmp[MAX_DEVNAME_LENGTH] = { 0 };
+					UNICODE_STRING pLowerDeviceName;
+					RtlInitEmptyUnicodeString(&pLowerDeviceName, tmp, sizeof(tmp));
 					pLowerDevice = (gSfDynamicFunctions.GetDeviceAttachmentBaseRef)(devList[i]);
 					//获取设备名称
-					SfGetObjectName(pLowerDevice,pLowerDeviceName);
+					SfGetObjectName(pLowerDevice,&pLowerDeviceName);
 					ObReferenceObject(pLowerDevice);
-					if (wcslen(pLowerDeviceName) >0)
+					if (pLowerDeviceName.Length > 0)
 					{
-						leave;
+						break;
 					}
 				}
 				ntStatus = (gSfDynamicFunctions.GetDiskDeviceObject)(devList[i],
 					&storageStackDeviceObject);
 				if (!NT_SUCCESS(ntStatus))
 				{
-					leave;
+					break;
 				}
 				ntStatus = IoCreateDevice(gSFilterDriverObject,
 					sizeof(SFILTER_DEVICE_EXTENSION),
@@ -157,7 +163,7 @@ NTSTATUS SfEnumerateFileSystemVolumes(IN PDEVICE_OBJECT FSDeviceObject)
 					&newDeviceObject);
 				if (!NT_SUCCESS(ntStatus))
 				{
-					leave;
+					break;
 				}
 				if (FlagOn(devList[i]->Flags, DO_BUFFERED_IO))
 				{
@@ -170,20 +176,25 @@ NTSTATUS SfEnumerateFileSystemVolumes(IN PDEVICE_OBJECT FSDeviceObject)
 				newDevExt = newDeviceObject->DeviceExtension;
 				newDevExt->TypeFlag = 'ss';
 				newDevExt->StorageStackDeviceObject = storageStackDeviceObject;
-				SfGetObjectName(storageStackDeviceObject, newDevExt->DeviceNameBuffer);
+				RtlInitEmptyUnicodeString(&newDevExt->DevieName, newDevExt->DeviceNameBuffer, MAX_DEVNAME_LENGTH);
+				SfGetObjectName(storageStackDeviceObject, &newDevExt->DevieName);
 				ExAcquireFastMutex(&gSfilterAttachLock);
 				ntStatus = STATUS_UNSUCCESSFUL;
-				for (i = 0; i < 8; i++)
-				{//循环绑定设备对象
-					LARGE_INTEGER interval;
-					newDevExt->AttachedToDeviceObject = IoAttachDeviceToDeviceStack(newDeviceObject,devList[i]);
-					if (newDevExt->AttachedToDeviceObject != NULL)
-					{
-						ClearFlag(newDeviceObject->Flags, DO_DEVICE_INITIALIZING);
-						ntStatus =  STATUS_SUCCESS;
+				{
+					int tt = 0;
+					for (tt = 0; tt < 8; tt++)
+					{//循环绑定设备对象
+						LARGE_INTEGER interval;
+						newDevExt->AttachedToDeviceObject = IoAttachDeviceToDeviceStack(newDeviceObject, devList[i]);
+						if (newDevExt->AttachedToDeviceObject != NULL)
+						{
+							ClearFlag(newDeviceObject->Flags, DO_DEVICE_INITIALIZING);
+							ntStatus = STATUS_SUCCESS;
+							break;
+						}
+						interval.QuadPart = (500 * -10 * 1000);
+						KeDelayExecutionThread(KernelMode, FALSE, &interval);
 					}
-					interval.QuadPart = (500*-10*1000);
-					KeDelayExecutionThread(KernelMode, FALSE, &interval);
 				}
 				if (!NT_SUCCESS(ntStatus))
 				{//校验是否是绑定成功。
@@ -191,34 +202,38 @@ NTSTATUS SfEnumerateFileSystemVolumes(IN PDEVICE_OBJECT FSDeviceObject)
 					newDeviceObject = NULL;
 				}
 				ExReleaseFastMutex(&gSfilterAttachLock);
+				break;
 			}
-			finally{
-				if (storageStackDeviceObject != NULL)
-				{
-					ObReferenceObject(storageStackDeviceObject);
-				}
+			if (storageStackDeviceObject != NULL)
+			{
+				ObReferenceObject(storageStackDeviceObject);
+				storageStackDeviceObject = NULL;
+			}
 			ObReferenceObject(devList[i]);
-			}
 		}
 	}
 	return ntStatus;
 }
 NTSTATUS sfAttachToFileSystemDevices(
 	IN PDEVICE_OBJECT DeviceObject,
-	IN PWCHAR DeviceName
+	IN PUNICODE_STRING DeviceName
 )
 {
 	PSFILTER_DEVICE_EXTENSION devExt = NULL;
 	PDEVICE_OBJECT newDeviceObject = NULL;
 	NTSTATUS status = STATUS_UNSUCCESSFUL;
-	if (DeviceObject->DeviceType != FILE_DEVICE_DISK_FILE_SYSTEM ||
-		DeviceObject->DeviceType != FILE_DEVICE_CD_ROM ||
-		DeviceObject->DeviceType != FILE_DEVICE_NETWORK_FILE_SYSTEM)
+	if (DeviceObject->DeviceType != FILE_DEVICE_DISK_FILE_SYSTEM &&   //0x8
+		DeviceObject->DeviceType != FILE_DEVICE_CD_ROM_FILE_SYSTEM &&             //0x3
+		DeviceObject->DeviceType != FILE_DEVICE_NETWORK_FILE_SYSTEM)   //0x14
 	{
+		KdPrint(("%s文件系统，不符合绑定规则,驱动名称为：%ws\n",__FUNCTION__,
+			DeviceObject->DriverObject->DriverName.Buffer));
 		goto sfAttachToFileSystemDevices_exit;
 	}
 	if (_wcsicmp(L"\\FileSystem\\Fs_Rec", DeviceObject->DriverObject->DriverName.Buffer) == 0)
 	{//\\FileSystem\\Fs_Rec 识别器。不进行绑定
+		KdPrint(("%s \"%s\"该设备为 文件系统识别器，不进行绑定",
+			__FUNCTION__, DeviceObject->DriverObject->DriverName.Buffer));
 		goto sfAttachToFileSystemDevices_exit;
 	}
 	status = IoCreateDevice(gSFilterDriverObject,
@@ -256,7 +271,7 @@ NTSTATUS sfAttachToFileSystemDevices(
 		status = STATUS_SUCCESS;
 	}
 
-	if (wcscpy_s(devExt->DeviceNameBuffer,MAX_DEVNAME_LENGTH,DeviceName) != 0)
+	if (wcscpy_s(devExt->DeviceNameBuffer,MAX_DEVNAME_LENGTH,DeviceName->Buffer) != 0)
 	{
 		KdPrint(("%s设备名称拷贝失败\n",__FUNCTION__));
 	}
@@ -274,12 +289,16 @@ sfAttachToFileSystemDevices_exit:
 VOID SfFsNotification(IN PDEVICE_OBJECT DeviceObject,IN BOOLEAN FsActive)
 {//监测新创建的设备信息。
 	NTSTATUS ntStatus;
-	WCHAR DeviceName[MAX_DEVNAME_LENGTH] = { 0 };
-	ntStatus = SfGetObjectName(DeviceObject, DeviceName);
-	KdPrint(("%s文件系统设备名:%ws 设备类型 type : 0x%x\n",__FUNCTION__, DeviceName, DeviceObject->DeviceType));
+	WCHAR tmp[MAX_DEVNAME_LENGTH] = { 0 };
+	UNICODE_STRING DeviceName;
+	RtlInitEmptyUnicodeString(&DeviceName, tmp,sizeof(tmp));
+	ntStatus = SfGetObjectName(DeviceObject,&DeviceName);
+	KdPrint(("%s -- %d 文件系统设备名:%ws 设备类型 type : 0x%x\n",
+		__FUNCTION__, FsActive, 
+		DeviceName.Buffer, DeviceObject->DeviceType));
 	if (FsActive)
 	{   //绑定文件系统
-		ntStatus = sfAttachToFileSystemDevices(DeviceObject,DeviceName);
+		ntStatus = sfAttachToFileSystemDevices(DeviceObject,&DeviceName);
 		if (NT_SUCCESS(ntStatus))
 		{
 			//遍历绑定，文件系统上的卷信息。
