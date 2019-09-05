@@ -71,6 +71,7 @@ SfIsAttachedToDevice_Exit:
 	if (currentDevObj != NULL)
 	{
 		ObDereferenceObject(currentDevObj);
+		currentDevObj = NULL;
 	}
 	return ret;
 }
@@ -117,7 +118,6 @@ NTSTATUS SfEnumerateFileSystemVolumes(IN PDEVICE_OBJECT FSDeviceObject)
 			ExFreePool(devList);
 			return ntStatus;
 		}
-		_asm int 3;
 		for (i = 0; i < numDevices; i++)
 		{//循环绑定设备对象
 			WCHAR tmp[MAX_DEVNAME_LENGTH] = { 0 };
@@ -223,9 +223,6 @@ NTSTATUS sfAttachToFileSystemDevices(
 	PDEVICE_OBJECT newDeviceObject = NULL;
 	NTSTATUS status = STATUS_UNSUCCESSFUL;
 	WCHAR tmp2[MAX_DEVNAME_LENGTH] = { 0 };
-	UNICODE_STRING DriverName;
-	RtlInitUnicodeString(&DriverName, tmp2, MAX_DEVNAME_LENGTH);
-	status = SfGetObjectName(DeviceObject->DriverObject, &DriverName);
 	if (DeviceObject->DeviceType != FILE_DEVICE_DISK_FILE_SYSTEM &&   //0x8
 		DeviceObject->DeviceType != FILE_DEVICE_CD_ROM_FILE_SYSTEM &&             //0x3
 		DeviceObject->DeviceType != FILE_DEVICE_NETWORK_FILE_SYSTEM)   //0x14
@@ -236,7 +233,7 @@ NTSTATUS sfAttachToFileSystemDevices(
 		goto sfAttachToFileSystemDevices_exit;
 	}
 
-	if (_wcsicmp(L"\\FileSystem\\Fs_Rec", DriverName.Buffer) == 0)
+	if (_wcsicmp(L"\\FileSystem\\Fs_Rec", DeviceObject->DriverObject->DriverName.Buffer) == 0)
 	{//\\FileSystem\\Fs_Rec 识别器。不进行绑定
 		KdPrint(("%s (%s)该设备为 文件系统识别器，不进行绑定",
 			__FUNCTION__, DeviceObject->DriverObject->DriverName.Buffer));
@@ -293,6 +290,25 @@ sfAttachToFileSystemDevices_exit:
 	}
 	return status;
 }
+VOID SfDetachFromFileSystemDevice(IN PDEVICE_OBJECT DeviceObject)
+{
+	PDEVICE_OBJECT ourAttachedDevice;
+	PSFILTER_DEVICE_EXTENSION devExt = NULL;
+
+	for (ourAttachedDevice = DeviceObject->AttachedDevice;ourAttachedDevice!= NULL; ourAttachedDevice = ourAttachedDevice->AttachedDevice)
+	{
+		if (ourAttachedDevice->DriverObject == gSFilterDriverObject &&
+			ourAttachedDevice->DeviceExtension != NULL)
+		{
+			devExt = ourAttachedDevice->DeviceExtension;
+			KdPrint(("%s卸载文件系统\n", __FUNCTION__));
+			IoDetachDevice(devExt->AttachedToDeviceObject);
+			IoDeleteDevice(ourAttachedDevice);
+			return;
+		}
+	}
+	return;
+}
 VOID SfFsNotification(IN PDEVICE_OBJECT DeviceObject,IN BOOLEAN FsActive)
 {//监测新创建的设备信息。
 	NTSTATUS ntStatus;
@@ -305,7 +321,6 @@ VOID SfFsNotification(IN PDEVICE_OBJECT DeviceObject,IN BOOLEAN FsActive)
 		DeviceName.Buffer, DeviceObject->DeviceType));
 	if (FsActive)
 	{   //绑定文件系统
-		_asm int 3;
 		ntStatus = sfAttachToFileSystemDevices(DeviceObject,&DeviceName);
 		if (NT_SUCCESS(ntStatus))
 		{
@@ -315,7 +330,7 @@ VOID SfFsNotification(IN PDEVICE_OBJECT DeviceObject,IN BOOLEAN FsActive)
 	}
 	else
 	{//卸载文件系统
-
+		SfDetachFromFileSystemDevice(DeviceObject);
 	}
 }
 NTSTATUS DeviceDispatch(IN PDEVICE_OBJECT DeviceObject,IN PIRP Irp)
