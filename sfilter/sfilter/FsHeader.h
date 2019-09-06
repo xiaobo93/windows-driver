@@ -105,3 +105,13 @@ typedef struct _SF_DYNAMIC_FUNCTION_POINTERS {
 	PSF_GET_VERSION GetVersion;
 
 } SF_DYNAMIC_FUNCTION_POINTERS, *PSF_DYNAMIC_FUNCTION_POINTERS;
+
+
+extern PDEVICE_OBJECT gSFilterControlDeivceObject;
+extern PDRIVER_OBJECT gSFilterDriverObject;
+extern SF_DYNAMIC_FUNCTION_POINTERS gSfDynamicFunctions; //存放导出函数的位置
+extern FAST_MUTEX gSfilterAttachLock;
+
+NTSTATUS SfGetObjectName(IN PVOID Object, PUNICODE_STRING name);
+
+BOOLEAN SfIsAttachedToDevice(PDEVICE_OBJECT DeviceObject);
