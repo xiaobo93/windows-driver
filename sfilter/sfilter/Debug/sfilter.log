@@ -1,0 +1,8 @@
+﻿  Building 'sfilter' with toolset 'WindowsKernelModeDriver10.0' and the 'Desktop' target platform.
+  CdoDispatch.c
+  DriverMain.c
+  FastIo.c
+  FsCallBack.c
+  FsDispatch.c
+  正在生成代码...
+  sfilter.vcxproj -> D:\SourceCode\windows-driver\sfilter\Debug\sfilter.sys
