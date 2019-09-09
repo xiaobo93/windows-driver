@@ -579,7 +579,7 @@ Return Value:
             FltUnregisterFilter( gFilterHandle );
         }
     }
-
+	DriverObject->DriverSection;
     return status;
 }
 

@@ -36,6 +36,7 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="miniFilter1.rc" />
+    <ClCompile Include="main.c" />
     <ClCompile Include="miniFilter.c" />
     <Inf Include="miniFilter1.inf" />
   </ItemGroup>
