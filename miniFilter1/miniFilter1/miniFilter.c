@@ -17,6 +17,7 @@ Environment:
 #include <fltKernel.h>
 #include <dontuse.h>
 #include <suppress.h>
+#include "miniFilter.h"
 
 #pragma prefast(disable:__WARNING_ENCODE_MEMBER_FUNCTION_POINTER, "Not valid for kernel mode drivers")
 
@@ -524,7 +525,7 @@ Return Value:
 *************************************************************************/
 
 NTSTATUS
-DriverEntry (
+miniFilterEntry (
     _In_ PDRIVER_OBJECT DriverObject,
     _In_ PUNICODE_STRING RegistryPath
     )
