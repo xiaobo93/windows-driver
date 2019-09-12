@@ -10,12 +10,16 @@ NTSTATUS ScanOSsys(PDRIVER_OBJECT DriverObject)
 	do
 	{
 		//应该过滤掉链表头。
-		KdPrint(("%d驱动名称 %wZ 基地址：0x%x\n",i,&tmp->ModuleName,tmp->ModuleBaseAddress));
+		if (tmp->EntryPoint != 0x0 && tmp->ModuleSize != 0)
+		{
+			KdPrint(("%d驱动名称 %wZ 基地址：0x%x\n", i, &tmp->ModuleName, tmp->ModuleBaseAddress));
+			i++;
+		}
 		//指向下一个链表
 		ListEntry = ListEntry->Flink;
 		tmp = CONTAINING_RECORD(ListEntry, LDR_DATA_TABLE_ENTRY, LoadOrder);
-		i++;
 	} while (tmp != ldr);
+
 	return STATUS_SUCCESS;
 }
 VOID DriverUnload(PDRIVER_OBJECT DriverObject)
