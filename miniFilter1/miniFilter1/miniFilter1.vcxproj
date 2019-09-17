@@ -35,6 +35,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="PsMonitor.c" />
     <ResourceCompile Include="miniFilter1.rc" />
     <ClCompile Include="main.c" />
     <ClCompile Include="miniFilter.c" />
@@ -194,6 +195,8 @@
   <ItemGroup>
     <ClInclude Include="head.h" />
     <ClInclude Include="miniFilter.h" />
+    <ClInclude Include="PsMonitor.h" />
+    <ClInclude Include="PublicHeader.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

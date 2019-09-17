@@ -17,6 +17,15 @@
       <UniqueIdentifier>{8E41214B-6785-4CFE-B992-037D68949A14}</UniqueIdentifier>
       <Extensions>inf;inv;inx;mof;mc;</Extensions>
     </Filter>
+    <Filter Include="进程">
+      <UniqueIdentifier>{bd75696e-6af0-4214-8043-078aae4a911d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="公共头">
+      <UniqueIdentifier>{84316321-c01f-47f6-bc3b-b43f85ef8391}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="入口">
+      <UniqueIdentifier>{485e76af-d885-46ad-87e3-76d1e19fa761}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <Inf Include="miniFilter1.inf">
@@ -32,8 +41,11 @@
     <ClCompile Include="miniFilter.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PsMonitor.c">
+      <Filter>进程</Filter>
+    </ClCompile>
     <ClCompile Include="main.c">
-      <Filter>Source Files</Filter>
+      <Filter>入口</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -42,6 +54,12 @@
     </ClInclude>
     <ClInclude Include="head.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="PsMonitor.h">
+      <Filter>进程</Filter>
+    </ClInclude>
+    <ClInclude Include="PublicHeader.h">
+      <Filter>公共头</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
