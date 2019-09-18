@@ -23,8 +23,11 @@
     <Filter Include="公共头">
       <UniqueIdentifier>{84316321-c01f-47f6-bc3b-b43f85ef8391}</UniqueIdentifier>
     </Filter>
-    <Filter Include="入口">
-      <UniqueIdentifier>{485e76af-d885-46ad-87e3-76d1e19fa761}</UniqueIdentifier>
+    <Filter Include="文件">
+      <UniqueIdentifier>{4a701e8b-7eb3-4b42-97eb-ecd4f8490b26}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="注册表">
+      <UniqueIdentifier>{c3fae7d5-1235-4aae-a8c0-0abaed153c0d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -38,20 +41,17 @@
     </ResourceCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="miniFilter.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="PsMonitor.c">
       <Filter>进程</Filter>
     </ClCompile>
+    <ClCompile Include="miniFilter.c">
+      <Filter>文件</Filter>
+    </ClCompile>
     <ClCompile Include="main.c">
-      <Filter>入口</Filter>
+      <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="miniFilter.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="head.h">
       <Filter>Header Files</Filter>
     </ClInclude>
@@ -60,6 +60,9 @@
     </ClInclude>
     <ClInclude Include="PublicHeader.h">
       <Filter>公共头</Filter>
+    </ClInclude>
+    <ClInclude Include="miniFilter.h">
+      <Filter>文件</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
